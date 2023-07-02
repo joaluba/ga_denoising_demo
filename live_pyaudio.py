@@ -9,8 +9,8 @@ import numpy as np
 
 
 # Choose device to compute: 
-#device="mps" 
-device="cpu"
+device="mps" 
+# device="cpu"
 
 # Load pytorch model
 model = causal_improved_sudormrf_v3.CausalSuDORMRF(
@@ -26,12 +26,13 @@ model = causal_improved_sudormrf_v3.CausalSuDORMRF(
 #model = torch.nn.DataParallel(model)
 #model.load_state_dict(torch.load('e39_sudo_whamr_16k_enhnoisy_augment.pt', map_location=device))
 model.load_state_dict(torch.load('m5_alldata_mild_causal.pt', map_location=device))
+model.to(device)
 
-#model = model.module.to(device)
+# model = model.module.to(device)
 model.eval()
 
-CHUNK_SIZE = 2048  # Number of frames per buffer
-N_BATCHES=1 # number of smaller batches the frame is divided to
+CHUNK_SIZE = 4096  # Number of frames per buffer
+N_BATCHES=4 # number of smaller batches the frame is divided to
 FORMAT = pyaudio.paFloat32  # format (i wold use 16bit if its possible, should be enough)
 
 
@@ -44,7 +45,7 @@ input_stream = p.open(
     rate=16000,
     input=True,
     frames_per_buffer=CHUNK_SIZE,
-    input_device_index=2
+    input_device_index=0
 )
 
 # Open the output audio stream
@@ -54,7 +55,7 @@ output_stream = p.open(
     rate=16000,
     output=True,
     frames_per_buffer=CHUNK_SIZE,
-    output_device_index=3
+    output_device_index=1
 )
 
 # Start the audio streams
@@ -86,6 +87,7 @@ try:
         # Send the tensor to the same device as the model
         audio_tensor = audio_tensor.permute(0, 2, 1)
         audio_tensor=audio_tensor.to(device)
+
         # Pass the audio tensor through the model
         output = model(audio_tensor)
         #output = audio_tensor #BYPASS MODEL
